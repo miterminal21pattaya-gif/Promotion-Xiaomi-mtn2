@@ -334,7 +334,65 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 });
 </script>
+
+<script>
+(function(){
+window.loadLinks=function(){
+ const box=document.getElementById('linksList');
+ const input=document.getElementById('linksInput');
+ const links=JSON.parse(localStorage.getItem('work_links')||'[]');
+
+ if(input){ input.value = links.join('\n'); }
+ if(!box) return;
+
+ box.innerHTML='';
+ links.forEach((link,i)=>{
+   const row=document.createElement('div');
+   row.style='background:#1f2937;padding:10px;border-radius:10px;margin:8px 0;display:flex;gap:10px;align-items:center';
+
+   const a=document.createElement('a');
+   a.href=link;
+   a.target='_blank';
+   a.textContent=link;
+   a.style='color:#60a5fa;word-break:break-all;flex:1';
+
+   const del=document.createElement('button');
+   del.textContent='ลบ';
+   del.onclick=function(){
+      const arr=JSON.parse(localStorage.getItem('work_links')||'[]');
+      arr.splice(i,1);
+      localStorage.setItem('work_links',JSON.stringify(arr));
+      loadLinks();
+   };
+
+   row.appendChild(a);
+   row.appendChild(del);
+   box.appendChild(row);
+ });
+};
+
+window.saveLinks=function(){
+ const input=document.getElementById('linksInput');
+ if(!input){ alert('ไม่พบช่องวางลิงก์'); return; }
+
+ const links=input.value
+   .split(/\r?\n/)
+   .map(v=>v.trim())
+   .filter(Boolean);
+
+ localStorage.setItem('work_links', JSON.stringify(links));
+ loadLinks();
+ alert('บันทึกลิงก์แล้ว');
+};
+
+document.addEventListener('DOMContentLoaded', function(){
+ const btn=document.querySelector('#linksManager button');
+ if(btn){ btn.onclick=saveLinks; }
+});
+})();
+</script>
 </body>
+
 
 
 </html>
