@@ -295,6 +295,36 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  // ลบหมวดหมู่ซ้ำ
+  document.querySelectorAll('.topmenu').forEach(menu=>{
+    const seen = new Set();
+    [...menu.querySelectorAll('button')].forEach(btn=>{
+      const key = (btn.textContent || '').trim() + '|' + (btn.getAttribute('onclick') || '');
+      if(seen.has(key)) btn.remove();
+      else seen.add(key);
+    });
+  });
+
+  // ให้เหลือช่องอัปโหลดไฟล์เดียว
+  const fileInputs = document.querySelectorAll('input[type="file"]#excel, input[type="file"]');
+  let foundExcel = false;
+  fileInputs.forEach(input=>{
+    const isExcel = input.id === 'excel';
+    if(isExcel && !foundExcel){
+      foundExcel = true;
+      return;
+    }
+    // ลบช่องอัปโหลดที่ซ้ำ (ยกเว้น giftImage)
+    if(input.id !== 'giftImage' && input !== document.getElementById('excel')){
+      input.remove();
+    }
+  });
+});
+</script>
 </body>
+
 
 </html>
