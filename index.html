@@ -72,6 +72,15 @@ th,td{padding:10px;min-width:120px}
 </div>
 
 
+
+<div id="linksManager" class="box" style="display:none">
+<h3 style="color:#111">ลิงก์งาน (วางได้เลย)</h3>
+<textarea id="linksInput" placeholder="วางลิงก์ที่นี่ (1 บรรทัดต่อ 1 ลิงก์)"
+style="width:100%;min-height:140px;padding:12px;border-radius:12px;margin-top:10px"></textarea>
+<button onclick="saveLinks()" style="margin-top:10px;padding:12px 18px;border:none;border-radius:12px;background:#ff6700;color:#fff">บันทึกลิงก์</button>
+<div id="linksList" style="margin-top:15px"></div>
+</div>
+
 <div class="mobileTableWrap"><table id="excelTable">
 <thead><tr id="theadRow"></tr></thead>
 <tbody></tbody>
@@ -252,21 +261,22 @@ function deleteGift(i){
 const oldSetCat=setCat;
 setCat=function(cat){
  oldSetCat(cat);
-
  const gm=document.getElementById('giftManager');
+ const lm=document.getElementById('linksManager');
  const table=document.getElementById('excelTable').parentElement;
+ const excel=document.getElementById('excel');
+ const search=document.getElementById('searchInput');
 
- gm.style.display=(cat==='gift')?'block':'none';
+ if(gm) gm.style.display=(cat==='gift')?'block':'none';
+ if(cat==='gift'){ loadGifts(); }
 
- if(cat==='gift'){
-   loadGifts();
- }
+ if(lm) lm.style.display=(cat==='links')?'block':'none';
+ if(cat==='links'){ loadLinks(); }
 
- if(cat==='gift' || cat==='links'){
-   table.style.display='none';
- }else{
-   table.style.display='block';
- }
+ const hide = (cat==='gift'||cat==='links');
+ table.style.display = hide ? 'none':'block';
+ if(excel) excel.style.display = (cat==='links') ? 'none':'block';
+ if(search) search.style.display = (cat==='links') ? 'none':'block';
 }
 
 function filterTable(){
