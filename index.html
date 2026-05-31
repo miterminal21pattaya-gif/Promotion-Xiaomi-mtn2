@@ -35,6 +35,10 @@ header{font-size:24px}
 .content{padding:10px}
 th,td{padding:10px;min-width:120px}
 }
+
+/* แสดงหมวดหมู่เฉพาะด้านบน */
+.topmenu:not(:first-of-type){display:none !important;}
+
 </style>
 
 </head>
@@ -67,6 +71,216 @@ th,td{padding:10px;min-width:120px}
 <div id="giftCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:15px"></div>
 </div>
 
+
+<div class="mobileTableWrap"><table id="excelTable">
+<thead><tr id="theadRow"></tr></thead>
+<tbody></tbody>
+</table></div>
+</div>
+
+<script>
+let current='promo';
+let currentSheet='';
+
+const names={
+promo:'โปรโมชั่นสินค้า',
+installment:'โค้ดผ่อนสินค้า',
+gift:'ของแถมสินค้า',
+phonepromo:'โปรโมชั่นโทรศัพท์',
+trade:'โปร Trade Smart Phone',
+links:'ลิงก์งาน'
+};
+
+function getKey(c){ return 'excel_'+c; }
+
+function setCat(cat){
+ current=cat;
+ document.getElementById('title').innerText=names[cat];
+ loadData();
+}
+
+function importExcel(e){
+ const file=e.target.files[0];
+ if(!file) return;
+
+ const reader=new FileReader();
+ reader.onload=function(evt){
+   const wb=XLSX.read(new Uint8Array(evt.target.result),{type:'array'});
+
+   const data={};
+   wb.SheetNames.forEach(name=>{
+      data[name]=XLSX.utils.sheet_to_json(
+        wb.Sheets[name],
+        {header:1,defval:''}
+      );
+   });
+
+   localStorage.setItem(getKey(current),JSON.stringify(data));
+   loadData();
+ };
+ reader.readAsArrayBuffer(file);
+}
+
+function loadData(){
+ const raw=localStorage.getItem(getKey(current));
+
+ document.getElementById('bankMenu').style.display='none';
+
+ if(!raw){
+   renderRows([]);
+   return;
+ }
+
+ const sheets=JSON.parse(raw);
+ const namesArr=Object.keys(sheets);
+
+ if(current==='installment' && namesArr.length>1){
+    createBankTabs(namesArr,sheets);
+ }else{
+    renderRows(sheets[namesArr[0]]||[]);
+ }
+}
+
+function createBankTabs(sheetNames,sheets){
+ const menu=document.getElementById('bankMenu');
+ menu.style.display='flex';
+
+ menu.innerHTML='';
+
+ sheetNames.forEach((s,i)=>{
+   const btn=document.createElement('button');
+   btn.textContent=s;
+
+   btn.onclick=()=>{
+      [...menu.querySelectorAll('button')].forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSheet=s;
+      renderRows(sheets[s],s);
+   };
+
+   menu.appendChild(btn);
+
+   if(i===0){
+      btn.click();
+   }
+ });
+}
+
+function getBankClass(name=''){
+ const n=name.toLowerCase();
+
+ if(n.includes('scb')) return 'scb';
+ if(n.includes('ktc')) return 'ktc';
+ if(n.includes('kbank')) return 'kbank';
+ if(n.includes('krungsri')) return 'krungsri';
+ return 'other';
+}
+
+function renderRows(rows,sheetName=''){
+ const tbody=document.querySelector('#excelTable tbody');
+ const thead=document.querySelector('#theadRow');
+
+ tbody.innerHTML='';
+ thead.innerHTML='';
+
+ if(!rows || rows.length===0){
+   tbody.innerHTML='<tr><td>ไม่มีข้อมูล</td></tr>';
+   return;
+ }
+
+ let maxCols=0;
+ rows.forEach(r=>{
+   if(r && r.length>maxCols) maxCols=r.length;
+ });
+
+ for(let c=0;c<maxCols;c++){
+   thead.innerHTML += '<th>คอลัมน์ '+(c+1)+'</th>';
+ }
+
+ const rowClass=getBankClass(sheetName);
+
+ rows.forEach(r=>{
+   if(!r || r.every(x=>String(x).trim()==='')) return;
+
+   let tr='<tr class="'+rowClass+'">';
+   for(let c=0;c<maxCols;c++){
+      tr+='<td>'+(r[c]??'')+'</td>';
+   }
+   tr+='</tr>';
+   tbody.innerHTML+=tr;
+ });
+}
+
+
+function loadGifts(){
+ const box=document.getElementById('giftCards');
+ if(!box) return;
+ const gifts=JSON.parse(localStorage.getItem('gift_items')||'[]');
+ box.innerHTML='';
+ gifts.forEach((g,i)=>{
+   box.innerHTML+=`
+   <div class="gift-card">
+      <img src="${g.img}">
+      <div class="title">${g.name}</div>
+      <button onclick="deleteGift(${i})">ลบ</button>
+   </div>`;
+ });
+}
+
+function saveGift(){
+ const name=document.getElementById('giftName').value;
+ const file=document.getElementById('giftImage').files[0];
+ if(!name||!file) return alert('กรอกข้อมูลให้ครบ');
+
+ const r=new FileReader();
+ r.onload=function(e){
+   const gifts=JSON.parse(localStorage.getItem('gift_items')||'[]');
+   gifts.push({name:name,img:e.target.result});
+   localStorage.setItem('gift_items',JSON.stringify(gifts));
+   loadGifts();
+ };
+ r.readAsDataURL(file);
+}
+
+function deleteGift(i){
+ const gifts=JSON.parse(localStorage.getItem('gift_items')||'[]');
+ gifts.splice(i,1);
+ localStorage.setItem('gift_items',JSON.stringify(gifts));
+ loadGifts();
+}
+
+const oldSetCat=setCat;
+setCat=function(cat){
+ oldSetCat(cat);
+
+ const gm=document.getElementById('giftManager');
+ const table=document.getElementById('excelTable').parentElement;
+
+ gm.style.display=(cat==='gift')?'block':'none';
+
+ if(cat==='gift'){
+   loadGifts();
+ }
+
+ if(cat==='gift' || cat==='links'){
+   table.style.display='none';
+ }else{
+   table.style.display='block';
+ }
+}
+
+function filterTable(){
+ const q=document.getElementById('searchInput')?.value.toLowerCase() || '';
+ document.querySelectorAll('#excelTable tbody tr').forEach(tr=>{
+   tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+ });
+}
+setCat('promo');
+
+
+</script>
+</body>
+</html>
 
 <div class="mobileTableWrap"><table id="excelTable">
 <thead><tr id="theadRow"></tr></thead>
